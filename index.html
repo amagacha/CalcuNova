@@ -4,226 +4,251 @@
 <meta charset="UTF-8">
 <title>CalcuNova</title>
 <style>
-    /* フォントと全体調整 */
-    body {
-        margin: 0;
-        font-family: 'Segoe UI', 'Helvetica', sans-serif;
-        background-color: #f5f5f5;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        flex-direction: column;
-    }
-
-    h1 {
-        font-size: 3rem;
-        margin-bottom: 2rem;
-    }
-
-    .hidden { display: none; }
-
-    button {
-        font-size: 1.2rem;
-        margin: 0.5rem;
-        padding: 0.5rem 1rem;
-        border-radius: 10px;
-        border: none;
-        cursor: pointer;
-        background-color: #4CAF50;
-        color: white;
-    }
-
-    button:hover { background-color: #45a049; }
-
-    #home, #gameArea, #resultArea {
-        text-align: center;
-    }
-
-    #keypad {
-        display: grid;
-        grid-template-columns: repeat(3, 60px);
-        gap: 10px;
-        justify-content: center;
-        margin-top: 1rem;
-    }
-
-    #version {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
-        font-size: 0.8rem;
-        color: gray;
-    }
-
-    input[type="number"] {
-        font-size: 2rem;
-        width: 120px;
-        text-align: center;
-    }
-
-    #question {
-        font-size: 2rem;
-        margin: 1rem 0;
-    }
-
-    #score, #timer, #combo {
-        font-size: 1.2rem;
-        margin: 0.5rem 0;
-    }
+body{
+    margin:0;
+    font-family:sans-serif;
+    background:#f0f4f8;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    flex-direction:column;
+}
+.hidden{display:none;}
+h1{font-size:3rem;margin-bottom:20px;}
+button{
+    font-size:1.2rem;
+    margin:5px;
+    padding:10px 15px;
+    border-radius:10px;
+    border:none;
+    background:#4CAF50;
+    color:white;
+    cursor:pointer;
+}
+button:hover{background:#45a049;}
+#question{font-size:2rem;margin:15px;}
+#answer{
+    font-size:2rem;
+    width:150px;
+    text-align:center;
+}
+#keypad{
+    display:grid;
+    grid-template-columns:repeat(3,70px);
+    gap:10px;
+    justify-content:center;
+    margin:15px;
+}
+#version{
+    position:absolute;
+    bottom:10px;
+    right:10px;
+    font-size:0.8rem;
+    color:gray;
+}
 </style>
 </head>
 <body>
 
 <div id="home">
-    <h1>CalcuNova</h1>
-    <p>学年を選択してスタート</p>
-    <div id="gradeButtons"></div>
-    <div id="version">β0.0.0</div>
+<h1>CalcuNova</h1>
+<p>学年を選んでスタート</p>
+<div id="gradeButtons"></div>
+<div id="version">V0.0.0</div>
 </div>
 
-<div id="gameArea" class="hidden">
-    <div id="timer">Time: 0</div>
-    <div id="score">Score: 0</div>
-    <div id="combo">Combo: 0</div>
-    <div id="question"></div>
-    <input type="number" id="answer" readonly>
-    <div id="keypad"></div>
-    <button onclick="checkAnswer()">決定</button>
+<div id="game" class="hidden">
+<div id="timer"></div>
+<div id="score"></div>
+<div id="question"></div>
+<input id="answer" readonly>
+<div id="keypad"></div>
+<button onclick="checkAnswer()">決定</button>
 </div>
 
-<div id="resultArea" class="hidden">
-    <h2>結果</h2>
-    <p id="finalScore"></p>
-    <button onclick="restart()">もう一回</button>
+<div id="result" class="hidden">
+<h2>結果</h2>
+<div id="finalScore"></div>
+<button onclick="backHome()">ホームへ</button>
 </div>
 
 <script>
-let score = 0;
-let combo = 0;
-let timeLeft = 0;
-let timerInterval;
-let currentAnswer = 0;
-let currentGrade = 1;
+let currentGrade=1;
+let score=0;
+let timeLeft=0;
+let timer;
+let correctAnswer=0;
 
-// ホーム画面：学年ボタン生成
-const gradeButtons = document.getElementById('gradeButtons');
-for(let g=1; g<=6; g++){
-    const btn = document.createElement('button');
-    btn.textContent = g+'年生';
-    btn.onclick = ()=>startGame(g);
-    gradeButtons.appendChild(btn);
+/* ===== 学年ボタン生成 ===== */
+for(let i=1;i<=6;i++){
+    const btn=document.createElement("button");
+    btn.textContent=i+"年生";
+    btn.onclick=()=>startGame(i);
+    document.getElementById("gradeButtons").appendChild(btn);
 }
 
-// キーパッド作成
-const keypadContainer = document.getElementById('keypad');
-function generateKeypad(){
-    keypadContainer.innerHTML='';
+/* ===== キーパッド ===== */
+function createKeypad(){
+    const keypad=document.getElementById("keypad");
+    keypad.innerHTML="";
     for(let i=1;i<=9;i++){
-        const btn = document.createElement('button');
-        btn.textContent=i;
-        btn.onclick=()=>document.getElementById('answer').value+=i;
-        keypadContainer.appendChild(btn);
+        const b=document.createElement("button");
+        b.textContent=i;
+        b.onclick=()=>document.getElementById("answer").value+=i;
+        keypad.appendChild(b);
     }
-    const zeroBtn = document.createElement('button');
-    zeroBtn.textContent='0';
-    zeroBtn.onclick=()=>document.getElementById('answer').value+='0';
-    keypadContainer.appendChild(zeroBtn);
+    const zero=document.createElement("button");
+    zero.textContent="0";
+    zero.onclick=()=>document.getElementById("answer").value+="0";
+    keypad.appendChild(zero);
 
-    const clearBtn = document.createElement('button');
-    clearBtn.textContent='C';
-    clearBtn.onclick=()=>document.getElementById('answer').value='';
-    keypadContainer.appendChild(clearBtn);
+    const clear=document.createElement("button");
+    clear.textContent="C";
+    clear.onclick=()=>document.getElementById("answer").value="";
+    keypad.appendChild(clear);
 }
 
-// スタートゲーム
+/* ===== スタート ===== */
 function startGame(grade){
-    currentGrade = grade;
-    document.getElementById('home').classList.add('hidden');
-    document.getElementById('gameArea').classList.remove('hidden');
-    score = 0;
-    combo = 0;
-    timeLeft = grade*30;
-    document.getElementById('timer').textContent = 'Time: '+timeLeft;
-    document.getElementById('score').textContent = 'Score: '+score;
-    document.getElementById('combo').textContent = 'Combo: '+combo;
-    generateKeypad();
+    currentGrade=grade;
+    score=0;
+    timeLeft=grade*30;
+
+    document.getElementById("home").classList.add("hidden");
+    document.getElementById("game").classList.remove("hidden");
+
+    document.getElementById("score").textContent="Score: 0";
+    document.getElementById("timer").textContent="Time: "+timeLeft;
+
+    createKeypad();
     newQuestion();
     startTimer();
 }
 
-// タイマー
+/* ===== タイマー ===== */
 function startTimer(){
-    clearInterval(timerInterval);
-    timerInterval = setInterval(()=>{
+    clearInterval(timer);
+    timer=setInterval(()=>{
         timeLeft--;
-        document.getElementById('timer').textContent = 'Time: '+timeLeft;
+        document.getElementById("timer").textContent="Time: "+timeLeft;
         if(timeLeft<=0){
-            clearInterval(timerInterval);
+            clearInterval(timer);
             endGame();
         }
     },1000);
 }
 
-// 問題生成
+/* ===== 問題生成（絶対マイナスなし） ===== */
 function newQuestion(){
-    let num1,num2,op;
+    let a,b,c,op1,op2;
+
     if(currentGrade===1){
-        op = Math.random()<0.5?'+':'-';
-        num1 = Math.floor(Math.random()*9)+1;
-        num2 = Math.floor(Math.random()*9)+1;
-    } else if(currentGrade===2){
-        const r = Math.random();
-        if(r<1/3){
-            op = '+';
-            num1 = Math.floor(Math.random()*100)+1;
-            num2 = Math.floor(Math.random()*100)+1;
-        } else if(r<2/3){
-            op = '-';
-            num1 = Math.floor(Math.random()*100)+1;
-            num2 = Math.floor(Math.random()*100)+1;
-        } else {
-            op = '×';
-            num1 = Math.floor(Math.random()*9)+1;
-            num2 = Math.floor(Math.random()*9)+1;
+        op1=Math.random()<0.5?"+":"-";
+        a=random(1,9);
+        b=random(1,9);
+        if(op1==="-" && b>a){ [a,b]=[b,a]; }
+        correctAnswer=op1==="+"?a+b:a-b;
+        show(a,op1,b);
+
+    }else if(currentGrade===2){
+        const r=Math.random();
+        if(r<0.4){
+            a=random(1,100);
+            b=random(1,100);
+            correctAnswer=a+b;
+            show(a,"+",b);
+        }else if(r<0.8){
+            a=random(1,100);
+            b=random(1,100);
+            if(b>a){[a,b]=[b,a];}
+            correctAnswer=a-b;
+            show(a,"-",b);
+        }else{
+            a=random(1,9);
+            b=random(1,9);
+            correctAnswer=a*b;
+            show(a,"×",b);
         }
-    } else {
-        op = '+';
-        num1 = Math.floor(Math.random()*10)+1;
-        num2 = Math.floor(Math.random()*10)+1;
+
+    }else{
+        // 3〜6年生
+        op1=randomOp();
+        op2=randomOp();
+        a=random(1,20);
+        b=random(1,20);
+        c=random(1,20);
+
+        // 割り算は割り切れるように
+        if(op1==="÷"){
+            b=random(1,9);
+            correctAnswer=random(1,20);
+            a=b*correctAnswer;
+        }
+
+        let expr=a+convert(op1)+b;
+
+        let temp=eval(expr);
+
+        if(op2==="÷"){
+            c=random(1,9);
+            let result=random(1,20);
+            temp=c*result;
+            correctAnswer=result;
+            show(temp,"÷",c);
+            return;
+        }
+
+        if(op2==="-"){
+            if(c>temp){ c=random(1,temp); }
+        }
+
+        correctAnswer=eval(temp+convert(op2)+c);
+        show(temp,op2,c);
     }
-    currentAnswer = eval(num1+op.replace('×','*')+num2);
-    document.getElementById('question').textContent=num1+' '+op+' '+num2;
+
+    document.getElementById("answer").value="";
 }
 
-// 答え判定
+function show(x,o,y){
+    document.getElementById("question").textContent=x+" "+o+" "+y;
+}
+
+function random(min,max){
+    return Math.floor(Math.random()*(max-min+1))+min;
+}
+
+function randomOp(){
+    const ops=["+","-","×","÷"];
+    return ops[random(0,3)];
+}
+
+function convert(op){
+    if(op==="×") return "*";
+    if(op==="÷") return "/";
+    return op;
+}
+
+/* ===== 判定 ===== */
 function checkAnswer(){
-    const input = Number(document.getElementById('answer').value);
-    if(input===currentAnswer){
+    const input=Number(document.getElementById("answer").value);
+    if(input===correctAnswer){
         score++;
-        combo++;
-        if(combo>=3) timeLeft++;
-        document.getElementById('score').textContent='Score: '+score;
-        document.getElementById('combo').textContent='Combo: '+combo;
-    } else {
-        combo=0;
-        document.getElementById('combo').textContent='Combo: 0';
+        document.getElementById("score").textContent="Score: "+score;
     }
-    document.getElementById('answer').value='';
     newQuestion();
 }
 
-// 結果
+/* ===== 終了 ===== */
 function endGame(){
-    document.getElementById('gameArea').classList.add('hidden');
-    document.getElementById('resultArea').classList.remove('hidden');
-    document.getElementById('finalScore').textContent='スコア: '+score;
+    document.getElementById("game").classList.add("hidden");
+    document.getElementById("result").classList.remove("hidden");
+    document.getElementById("finalScore").textContent="スコア: "+score;
 }
 
-// もう一回
-function restart(){
-    document.getElementById('resultArea').classList.add('hidden');
-    document.getElementById('home').classList.remove('hidden');
+function backHome(){
+    document.getElementById("result").classList.add("hidden");
+    document.getElementById("home").classList.remove("hidden");
 }
 </script>
 
